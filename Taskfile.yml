@@ -1,0 +1,53 @@
+version: '3'
+
+vars:
+  VERSION: '0.1.0-dev'
+
+tasks:
+  default:
+    desc: List all tasks
+    cmds:
+      - task --list
+
+  dev:
+    desc: Run Wails in development mode with hot reload
+    cmds:
+      - wails3 dev
+
+  build:
+    desc: Build production binary
+    deps: [build:ui]
+    cmds:
+      - go build -ldflags "-s -w -X github.com/TheJenilDGohel/MobRig/internal/config.Version={{.VERSION}}" -o bin/mobrig{{exeExt}} ./cmd/mobrig
+
+  build:ui:
+    desc: Build frontend assets
+    dir: ui
+    cmds:
+      - npm run build
+
+  test:
+    desc: Run all Go unit tests
+    cmds:
+      - go test -v ./...
+
+  test:ui:
+    desc: Check UI types and svelte components
+    dir: ui
+    cmds:
+      - npm run check
+
+  lint:
+    desc: Run golangci-lint
+    cmds:
+      - golangci-lint run ./...
+
+  clean:
+    desc: Clean build artifacts
+    cmds:
+      - powershell -Command "Remove-Item -Recurse -Force bin -ErrorAction SilentlyContinue; Remove-Item -Recurse -Force ui/dist -ErrorAction SilentlyContinue"
+
+  db:migrate:
+    desc: Run database migrations against local DB
+    cmds:
+      - go run ./cmd/mobrig -data-dir ~/.mobrig
