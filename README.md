@@ -3,7 +3,7 @@
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="mobrig-logo-light.png">
   <source media="(prefers-color-scheme: light)" srcset="mobrig-logo-dark.png">
-  <img alt="MobRig Mascot" src="mobrig-logo-dark.png" width="160">
+  <img alt="MobRig Mascot" src="mobrig-logo-dark.png" width="340">
 </picture>
 
 # MobRig

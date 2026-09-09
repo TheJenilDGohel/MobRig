@@ -33,10 +33,12 @@ jobs:
             goos: darwin
             goarch: arm64
             asset_name: mobrig-darwin-arm64
-          - os: macos-13
+          - os: macos-latest
             goos: darwin
             goarch: amd64
             asset_name: mobrig-darwin-amd64
+            cgo_cflags: "-arch x86_64"
+            cgo_ldflags: "-arch x86_64"
 
     steps:
       - name: Checkout repository
@@ -85,6 +87,8 @@ jobs:
         env:
           GOOS: ${{ matrix.goos }}
           GOARCH: ${{ matrix.goarch }}
+          CGO_CFLAGS: ${{ matrix.cgo_cflags }}
+          CGO_LDFLAGS: ${{ matrix.cgo_ldflags }}
         run: |
           go build -trimpath -ldflags "-s -w -X github.com/TheJenilDGohel/MobRig/internal/config.Version=${{ env.VERSION_CLEAN }}" -o ${{ matrix.asset_name }} ./cmd/mobrig
 

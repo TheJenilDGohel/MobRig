@@ -58,8 +58,8 @@
   <!-- Header -->
   <header class="sticky top-0 z-40 border-b-4 border-white bg-[#050505]/90 backdrop-blur-md p-6 flex justify-between items-center">
     <div class="flex items-center gap-4 cursor-pointer" on:click={handleBackToList} role="button" tabindex="0" on:keydown={(e) => e.key === 'Enter' && handleBackToList()}>
-      <div class="w-12 h-12 bg-[#B829EA] border-4 border-white flex items-center justify-center font-black text-2xl shadow-shadow">
-        M
+      <div class="w-12 h-12 bg-black border-4 border-white flex items-center justify-center shadow-shadow p-1.5 overflow-hidden">
+        <img src="/mobrig-mascot.png" alt="MobRig Mascot" class="w-full h-full object-contain" />
       </div>
       <div>
         <div class="flex items-center gap-3">
