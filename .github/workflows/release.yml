@@ -25,18 +25,24 @@ jobs:
             goos: windows
             goarch: amd64
             asset_name: mobrig-windows-amd64.exe
+            cgo_enabled: "0"
           - os: ubuntu-latest
             goos: linux
             goarch: amd64
             asset_name: mobrig-linux-amd64
+            cgo_enabled: "1"
           - os: macos-latest
             goos: darwin
             goarch: arm64
             asset_name: mobrig-darwin-arm64
+            cgo_enabled: "1"
           - os: macos-latest
             goos: darwin
             goarch: amd64
             asset_name: mobrig-darwin-amd64
+            cgo_enabled: "1"
+            cc: "clang -arch x86_64"
+            cxx: "clang++ -arch x86_64"
             cgo_cflags: "-arch x86_64"
             cgo_ldflags: "-arch x86_64"
 
@@ -62,8 +68,9 @@ jobs:
       - name: Install Linux build dependencies
         if: runner.os == 'Linux'
         run: |
-          sudo apt-get update -q
-          sudo apt-get install -y libgtk-4-dev libwebkitgtk-6.0-dev libsoup-3.0-dev
+          sudo rm -f /etc/apt/sources.list.d/google-chrome.list
+          sudo apt-get update -q || sudo apt-get update -q --fix-missing
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends libgtk-4-dev libwebkitgtk-6.0-dev libsoup-3.0-dev
 
       - name: Setup Go
         uses: actions/setup-go@v5
@@ -87,6 +94,9 @@ jobs:
         env:
           GOOS: ${{ matrix.goos }}
           GOARCH: ${{ matrix.goarch }}
+          CGO_ENABLED: ${{ matrix.cgo_enabled }}
+          CC: ${{ matrix.cc }}
+          CXX: ${{ matrix.cxx }}
           CGO_CFLAGS: ${{ matrix.cgo_cflags }}
           CGO_LDFLAGS: ${{ matrix.cgo_ldflags }}
         run: |
