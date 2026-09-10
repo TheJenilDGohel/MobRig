@@ -13,6 +13,8 @@ on:
 
 permissions:
   contents: write
+  id-token: write
+  attestations: write
 
 jobs:
   version:
@@ -156,6 +158,37 @@ jobs:
         run: |
           go build -trimpath -ldflags "-s -w -X github.com/TheJenilDGohel/MobRig/internal/config.Version=${{ needs.version.outputs.version }}" -o ${{ matrix.asset_name }} ./cmd/mobrig
 
+      - name: Sign Windows release binary
+        if: runner.os == 'Windows' && env.WINDOWS_SIGNING_CERTIFICATE != ''
+        env:
+          asset_name: ${{ matrix.asset_name }}
+          WINDOWS_SIGNING_CERTIFICATE: ${{ secrets.WINDOWS_SIGNING_CERTIFICATE }}
+          WINDOWS_SIGNING_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_SIGNING_CERTIFICATE_PASSWORD }}
+        shell: pwsh
+        run: |
+          $certificateBytes = [Convert]::FromBase64String($env:WINDOWS_SIGNING_CERTIFICATE)
+          $certificatePath = Join-Path $env:RUNNER_TEMP "mobrig-signing.pfx"
+          [IO.File]::WriteAllBytes($certificatePath, $certificateBytes)
+          try {
+            $signtool = Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\bin" -Filter signtool.exe -Recurse |
+              Sort-Object FullName -Descending |
+              Select-Object -First 1
+            if ($null -eq $signtool) {
+              throw "signtool.exe was not found on the Windows runner"
+            }
+            & $signtool.FullName sign /fd sha256 /tr http://timestamp.digicert.com /td sha256 `
+              /f $certificatePath /p $env:WINDOWS_SIGNING_CERTIFICATE_PASSWORD $env:asset_name
+            if ($LASTEXITCODE -ne 0) {
+              throw "signtool.exe failed with exit code $LASTEXITCODE"
+            }
+            & $signtool.FullName verify /pa /all $env:asset_name
+            if ($LASTEXITCODE -ne 0) {
+              throw "signature verification failed with exit code $LASTEXITCODE"
+            }
+          } finally {
+            Remove-Item $certificatePath -Force -ErrorAction SilentlyContinue
+          }
+
       - name: Upload binary artifact
         uses: actions/upload-artifact@v4
         with:
@@ -182,6 +215,11 @@ jobs:
         run: |
           sha256sum mobrig-* > checksums.txt
           cat checksums.txt
+
+      - name: Attest release artifacts
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: release-assets/*
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
