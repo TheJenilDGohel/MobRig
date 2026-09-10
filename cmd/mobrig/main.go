@@ -140,7 +140,7 @@ func main() {
 		},
 	})
 
-	application.NewWindow(application.WebviewWindowOptions{
+	app.Window.NewWithOptions(application.WebviewWindowOptions{
 		Title:  "MobRig",
 		Width:  1200,
 		Height: 800,
