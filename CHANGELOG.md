@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.1] - 2026-09-10
+
+### Fixed
+- **app**: register desktop window with Wails
+
+### Changed
+- **assets**: structurize branding and generate Windows ICO assets
+- **release**: add artifact provenance and optional signing
+- **release**: automate semantic versioned releases on main
+
 ## [0.1.0] - 2026-09-09
 
 ### Added
