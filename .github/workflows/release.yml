@@ -2,20 +2,86 @@ name: Release
 
 on:
   push:
-    tags:
-      - 'v*'
+    branches:
+      - main
   workflow_dispatch:
     inputs:
       version:
         description: 'Version tag (e.g. v3.0.0)'
         required: true
+        type: string
 
 permissions:
   contents: write
 
 jobs:
+  version:
+    name: Determine release version
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      tag: ${{ steps.version.outputs.tag }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Calculate and create version tag
+        id: version
+        shell: bash
+        env:
+          MANUAL_VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+
+          if [ -n "$MANUAL_VERSION" ]; then
+            CLEAN="${MANUAL_VERSION#v}"
+          else
+            LATEST_TAG="$(git tag --list 'v*' --sort=-version:refname | head -n 1)"
+            if [ -z "$LATEST_TAG" ]; then
+              LATEST_TAG="v0.0.0"
+              RANGE="HEAD"
+            else
+              RANGE="${LATEST_TAG}..HEAD"
+            fi
+
+            COMMITS="$(git log --format='%s%n%b' "$RANGE")"
+            if grep -Eq 'BREAKING CHANGE:|BREAKING-CHANGE:|^[^[:space:]]+!:' <<< "$COMMITS"; then
+              BUMP="major"
+            elif grep -Eq '^feat(\([^)]*\))?:' <<< "$COMMITS"; then
+              BUMP="minor"
+            else
+              BUMP="patch"
+            fi
+
+            IFS=. read -r MAJOR MINOR PATCH <<< "${LATEST_TAG#v}"
+            case "$BUMP" in
+              major) MAJOR=$((MAJOR + 1)); MINOR=0; PATCH=0 ;;
+              minor) MINOR=$((MINOR + 1)); PATCH=0 ;;
+              patch) PATCH=$((PATCH + 1)) ;;
+            esac
+            CLEAN="${MAJOR}.${MINOR}.${PATCH}"
+          fi
+
+          TAG="v${CLEAN}"
+          if git rev-parse "$TAG" >/dev/null 2>&1; then
+            echo "Tag $TAG already exists; refusing to overwrite it." >&2
+            exit 1
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag "$TAG" "$GITHUB_SHA"
+          git push origin "$TAG"
+
+          echo "version=${CLEAN}" >> "$GITHUB_OUTPUT"
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+          echo "Releasing MobRig ${TAG}"
+
   build:
     name: Build (${{ matrix.asset_name }})
+    needs: version
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -78,18 +144,6 @@ jobs:
           go-version: '1.24'
           cache: true
 
-      - name: Resolve version
-        shell: bash
-        run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            RAW="${{ github.event.inputs.version }}"
-          else
-            RAW="${GITHUB_REF#refs/tags/}"
-          fi
-          CLEAN="${RAW#v}"
-          echo "VERSION_CLEAN=${CLEAN}" >> $GITHUB_ENV
-          echo "Building MobRig release v${CLEAN}"
-
       - name: Build release binary
         env:
           GOOS: ${{ matrix.goos }}
@@ -100,7 +154,7 @@ jobs:
           CGO_CFLAGS: ${{ matrix.cgo_cflags }}
           CGO_LDFLAGS: ${{ matrix.cgo_ldflags }}
         run: |
-          go build -trimpath -ldflags "-s -w -X github.com/TheJenilDGohel/MobRig/internal/config.Version=${{ env.VERSION_CLEAN }}" -o ${{ matrix.asset_name }} ./cmd/mobrig
+          go build -trimpath -ldflags "-s -w -X github.com/TheJenilDGohel/MobRig/internal/config.Version=${{ needs.version.outputs.version }}" -o ${{ matrix.asset_name }} ./cmd/mobrig
 
       - name: Upload binary artifact
         uses: actions/upload-artifact@v4
@@ -111,7 +165,7 @@ jobs:
 
   publish:
     name: Publish GitHub Release
-    needs: [build]
+    needs: [version, build]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -133,6 +187,8 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: release-assets/*
+          tag_name: ${{ needs.version.outputs.tag }}
+          name: MobRig ${{ needs.version.outputs.tag }}
           generate_release_notes: true
           draft: false
           prerelease: false
