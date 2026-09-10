@@ -51,3 +51,9 @@ tasks:
     desc: Run database migrations against local DB
     cmds:
       - go run ./cmd/mobrig -data-dir ~/.mobrig
+
+  icons:
+    desc: Generate Windows ICO and web icon assets from root logo files
+    cmds:
+      - python scripts/generate_icons.py
+      - go-winres make --in cmd/mobrig/winres/winres.json --out cmd/mobrig/rsrc --arch amd64,386,arm64

@@ -1,9 +1,9 @@
 <div align="center">
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="mobrig-logo-light.png">
-  <source media="(prefers-color-scheme: light)" srcset="mobrig-logo-dark.png">
-  <img alt="MobRig Mascot" src="mobrig-logo-dark.png" width="340">
+  <source media="(prefers-color-scheme: dark)" srcset="assets/brand/mobrig-logo-light.png">
+  <source media="(prefers-color-scheme: light)" srcset="assets/brand/mobrig-logo-dark.png">
+  <img alt="MobRig Mascot" src="assets/brand/mobrig-logo-dark.png" width="340">
 </picture>
 
 # MobRig
